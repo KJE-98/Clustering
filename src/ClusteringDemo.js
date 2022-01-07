@@ -89,14 +89,14 @@ export default class ClusteringDemo extends React.Component {
       </FormControl>
       {this.manageOptions()}
     </Stack> < /AppBar>
-    <Box sx={{backgroundColor: "#4d3f8f", paddingTop: "1vw"}}>
-      <Paper elevation={6} sx={{display: "inline-block", width: "23vw", height: "45vw", backgroundColor: "#8879c9", margin: "1vw"}}>
+    <Box sx={{backgroundColor: "#dcfcfc", paddingTop: "1vw"}}>
+      <Paper elevation={6} sx={{display: "inline-block", width: "23vw", height: "45vw", backgroundColor: "#e3fdff", margin: "1vw"}}>
       </Paper>
-      <Paper elevation={6} sx={{display: "inline-block", width: "45vw", height: "45vw", backgroundColor: "gray", margin: "1vw"}}>
-        <Grid style={{width: "45vw", height: "45vw"}}>
+      <Paper elevation={6} sx={{display: "inline-block", width: "45vw", height: "45vw", backgroundColor: "#e3fdff", margin: "1vw"}}>
+        <Grid style={{width: "45vw", height: "45vw", borderRadius: "1px"}} background="#e3fdff">
         </Grid>
       </Paper>
-      <Paper elevation={6} sx={{display: "inline-block", width: "23vw", height: "45vw", backgroundColor: "#8879c9", margin: "1vw"}}>
+      <Paper elevation={6} sx={{display: "inline-block", width: "23vw", height: "45vw", backgroundColor: "#e3fdff", margin: "1vw"}}>
       </Paper>
     </Box>
     </>);

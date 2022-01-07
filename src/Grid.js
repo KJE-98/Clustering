@@ -4,18 +4,19 @@ import {Pt, Group, Line, Create, Sound, Triangle, Const, Geom} from 'pts/dist/es
 
 export default class Grid extends PtsCanvas{
 
-  action(type, x, y){
-
-  }
   constructor() {
     super();
-    this.noiseGrid = [];
+    this.colorGrid = new Array(10000).fill(0);
+    this.colorMappings = ['#e0fffe']
   }
 
   _create() {
     // Create a line and a grid, and convert them to `Noise` points
-    let gd = Create.gridPts( this.space.innerBound, 20, 20 );
-    this.noiseGrid = Create.noisePts( gd, 0.05, 0.1, 20, 20 );
+    this.gd = Create.gridPts( this.space.innerBound, 50, 50 );
+  }
+
+  colorOfKey(key){
+    return this.colorMappings[key]
   }
 
   componentDidUpdate() {
@@ -38,20 +39,17 @@ export default class Grid extends PtsCanvas{
     this._create();
   }
 
-
   // Override PtsCanvas' animate function
   animate(time, ftime) {
-
-    if (!this.noiseGrid) return;
-
     // Use pointer position to change speed
     let speed = this.space.pointer.$subtract( this.space.center ).divide( this.space.center ).abs();
-
     // Generate noise in a grid
-    this.noiseGrid.forEach( (p) => {
-      p.step( 0.01*(1-speed.x), 0.01*(1-speed.y) );
-      this.form.fillOnly("#123").point( p, Math.abs( p.noise2D() * this.space.size.x/18 ), "circle" );
-    });
+    for (const[key, value] of this.gd.entries()){
+      this.form.fillOnly(this.colorOfKey(this.colorGrid[key])).point(value, 5, "square" );
+    }
+  }
+
+  action(type, x, y){
 
   }
 
