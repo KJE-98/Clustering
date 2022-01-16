@@ -61,8 +61,6 @@ export default class Grid extends PtsCanvas{
       this.form.fillOnly(this.colorOfKey(this.props.gridState[key])).point(value, size, "square" );
     }
     for (const [index, animation] of this.props.gridAnimations.entries()){
-      console.log("in animate");
-      console.log(animation.type);
       if (animation.progress >= animation.duration){this.props.deleteAnimation(index)}
       if (animation.type == "dot"){
         let progress = Math.min(animation.progress/animation.duration,1)

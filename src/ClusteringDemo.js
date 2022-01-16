@@ -49,7 +49,11 @@ export default class ClusteringDemo extends React.Component {
     }else if (next.type == "break"){
       setTimeout(this.interpretAnimation, next.duration, queue);
     }else if (next.type == "x"){
-      console.log("hello");
+      console.log("inx");
+      this.addAnimation("x", next.position, next.color);
+      this.interpretAnimation(queue);
+    }else if (next.type == "meanX"){
+      console.log("inmeanx");
       this.addAnimation("x", next.position, next.color);
       this.interpretAnimation(queue);
     }
@@ -66,7 +70,6 @@ export default class ClusteringDemo extends React.Component {
       goAgain = false;
       let centerColor = 2;
       for (let point of centerArray){
-        console.log(point);
         animationQueue.push({
           type: "x",
           position: point,
@@ -125,7 +128,68 @@ export default class ClusteringDemo extends React.Component {
   }
 
   mean_shift(r){
-    
+    console.log("starting");
+    let number_rows = Math.floor(50/r);
+    let animationQueue = [];
+    let grid = this.copy(this.gridState);
+    //create points to be the initial centers
+    let centerArray = new Array(number_rows**2).fill(0).map((element,index) => {
+      let x = (Math.floor(index/number_rows)) * 50/number_rows;
+      let y = (index%number_rows) * 50/number_rows;
+      return [x,y];
+    });
+    for (let center of centerArray){
+      animationQueue.push({
+        type: "x",
+        position: center,
+        color:  2
+      });
+    }
+    for (let i = 0; i<10; i++){
+      animationQueue.push({
+        type: "break",
+        duration: 1000,
+      })
+      let newCenter = new Array(centerArray.length).fill(0).map(() => [0,0]);
+      let newCenterHelper = new Array(centerArray.length).fill(0).map(() => []);
+      for (let [index, element] of grid.entries()){
+        if (element == 0){continue;}
+        let point = this.indexToxy(index);
+        for (let [centerIndex, center] of centerArray.entries()){
+          if (center == null){continue}
+          let x_diff = Math.abs(point[0] - center[0]);
+          let y_diff = Math.abs(point[1] - center[1]);
+          if (x_diff > r || y_diff > r){continue;}
+          if (x_diff**2+y_diff**2 < r**2){
+            newCenter[centerIndex][0] += point[0];
+            newCenter[centerIndex][1] += point[1];
+            newCenterHelper[centerIndex].push(index);
+          }
+        }
+      }
+      centerArray = newCenter.map((element,index) => {
+        let len = newCenterHelper[index].length;
+        if (len == 0){return null;}
+        let x = element[0]/len;
+        let y = element[1]/len;
+        return [x,y];
+      });
+      console.log(centerArray);
+      for (let [index,center] of centerArray.entries()){
+        console.log("in loop");
+        if (center == null){continue;}
+        animationQueue.push({
+          type: "meanX",
+          position: center,
+          color:  2,
+          points: this.copy(newCenterHelper[index]),
+        });
+      }
+    }
+    console.log("done")
+    console.log(animationQueue);
+    this.interpretAnimation(animationQueue);
+    return animationQueue;
   }
 
   hoistSpace = (space)=> {
@@ -167,7 +231,6 @@ export default class ClusteringDemo extends React.Component {
         color: this.colorMappings[this.gridState[position]]
       }
     }else if (type == "x"){
-      console.log("addAnimation");
       animationObj = {
         progress: 0,
         duration: 1000,
@@ -234,7 +297,7 @@ export default class ClusteringDemo extends React.Component {
         </Slide>
         <Slide in={this.state.algType === 2} timeout={500} direction="down" mountOnEnter unmountOnExit>
           <ButtonGroup variant="contained" aria-label="outlined primary button group">
-            <Button>Run Algorithm</Button>
+            <Button onClick={()=>{this.mean_shift(5)}}>Run Algorithm</Button>
             <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
           </ButtonGroup>
         </Slide>
