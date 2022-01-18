@@ -44,9 +44,11 @@ export default class ClusteringDemo extends React.Component {
     let next = queue.shift();
     console.log(next);
     if (next.type == "point"){
+      console.log("point");
       this.changeGrid(next.position, next.color)
       this.interpretAnimation(queue);
     }else if (next.type == "break"){
+      console.log("break");
       setTimeout(this.interpretAnimation, next.duration, queue);
     }else if (next.type == "x"){
       console.log("inx");
@@ -54,7 +56,16 @@ export default class ClusteringDemo extends React.Component {
       this.interpretAnimation(queue);
     }else if (next.type == "meanX"){
       console.log("inmeanx");
+      console.log();
+      let position = next.points.map((element) => this.indexToxy(element));
+      console.log("here");
+      console.log(position);
+      console.log(next.position);
+      this.addAnimation("mean", next.position, next.color, position);
       this.addAnimation("x", next.position, next.color);
+      this.interpretAnimation(queue);
+    }else if (next.type == "join"){
+      console.log("injoin");
       this.interpretAnimation(queue);
     }
   }).bind(this);
@@ -83,10 +94,10 @@ export default class ClusteringDemo extends React.Component {
       });
       let newCenterArray = new Array(k).fill(0).map(() => [0,0]);
       let newCenterArrayHelper = new Array(k).fill(0);
+      let centerArrayledger = new Array(k).fill(0).map(() => []);
       let newGrid = this.copy(grid);
       for(const [index,point] of grid.entries()){
         if (point == 0) {continue;}
-
         let coordinates = (this.indexToxy(index));
         let distance = 100000;
         let closest = 2;
@@ -101,6 +112,8 @@ export default class ClusteringDemo extends React.Component {
           clusterIndex++;
         }
         newGrid[index] = closest;
+        centerArrayledger[closest-2].push(index);
+
         if (closest != point){
           goAgain = true;
           animationQueue.push({
@@ -114,7 +127,7 @@ export default class ClusteringDemo extends React.Component {
         newCenterArrayHelper[closest-2] += 1;
       }
       centerArray = newCenterArray.map((element, index) => {
-        if (newCenterArrayHelper[index]==0){return [Math.random()*50,Math.random()*50]}
+        if (newCenterArrayHelper[index]==0){goAgain = true; return [Math.random()*50,Math.random()*50]}
         return [element[0]/newCenterArrayHelper[index],element[1]/newCenterArrayHelper[index]]
       });
       grid = newGrid;
@@ -122,20 +135,29 @@ export default class ClusteringDemo extends React.Component {
         type: "break",
         duration: 1000,
       });
+      console.log("centerArrayledger");
+      console.log(centerArrayledger);
+      for (const [legerIndex, points] of centerArrayledger.entries()){
+        animationQueue.push({
+          type: "meanX",
+          color: legerIndex+2,
+          position: centerArray[legerIndex],
+          points: points,
+        });
+      }
     }
     this.interpretAnimation(animationQueue);
     return animationQueue;
   }
 
   mean_shift(r){
-    console.log("starting");
     let number_rows = Math.floor(50/r);
     let animationQueue = [];
     let grid = this.copy(this.gridState);
     //create points to be the initial centers
     let centerArray = new Array(number_rows**2).fill(0).map((element,index) => {
-      let x = (Math.floor(index/number_rows)) * 50/number_rows;
-      let y = (index%number_rows) * 50/number_rows;
+      let x = (Math.floor(index/number_rows)+.5) * (50/number_rows);
+      let y = (index%number_rows+.5) * (50/number_rows);
       return [x,y];
     });
     for (let center of centerArray){
@@ -174,9 +196,7 @@ export default class ClusteringDemo extends React.Component {
         let y = element[1]/len;
         return [x,y];
       });
-      console.log(centerArray);
       for (let [index,center] of centerArray.entries()){
-        console.log("in loop");
         if (center == null){continue;}
         animationQueue.push({
           type: "meanX",
@@ -186,10 +206,123 @@ export default class ClusteringDemo extends React.Component {
         });
       }
     }
-    console.log("done")
-    console.log(animationQueue);
     this.interpretAnimation(animationQueue);
     return animationQueue;
+  }
+
+  agglomerative(){
+    let clusters = new Array(100).fill(0);
+    let animationQueue = [];
+    let grid = this.copy(this.gridState);
+    let goAgain = true;
+    let ticker = 0
+    while (goAgain && ticker < 10){
+      goAgain = false;
+      ticker++;
+      let nextJoining = [];
+      let minDistance = 100000;
+      for (let i = 0; i<2500; i++){
+        let i_coord = this.indexToxy(i);
+        if (grid[i] == 0){continue;}
+        for (let j = i + 1; j<2500; j++){
+
+          if (grid[j] == 0){continue;}
+          if ((grid[i] == grid[j] && grid[i] != 1)){continue;}
+          let j_coord = this.indexToxy(j);
+          let distance = (i_coord[0]-j_coord[0])**2 + (i_coord[1]-j_coord[1])**2
+          if (distance < minDistance){
+            minDistance = distance;
+            nextJoining = [i,j];
+            goAgain = true;
+          }
+        }
+      }
+      if (grid[nextJoining[0]] == 1 && grid[nextJoining[1]] == 1){
+        let color = -1;
+        for (let [index, element] of clusters.entries()){
+          if (element == 0){
+            color = index;
+            break;
+          }
+        }
+        grid[nextJoining[0]] = color + 2;
+        grid[nextJoining[1]] = color + 2;
+        clusters[color] = 1;
+        animationQueue.push({
+          type: "join",
+          position: nextJoining,
+          color: color + 2,
+        });
+        animationQueue.push({
+          type: "point",
+          position: nextJoining[0],
+          color: color + 2,
+        });
+        animationQueue.push({
+          type: "point",
+          position: nextJoining[1],
+          color: color + 2,
+        })
+      } else if (grid[nextJoining[0]] == 1){
+        let cluster = grid[nextJoining[1]];
+        grid[nextJoining[0]] = cluster;
+        grid[nextJoining[1]] = cluster;
+        animationQueue.push({
+          type: "join",
+          position: nextJoining,
+          color: cluster,
+        });
+        animationQueue.push({
+          type: "point",
+          position: nextJoining[0],
+          color: cluster,
+        });
+      }else if (grid[nextJoining[1]] == 1){
+        let cluster = grid[nextJoining[0]];
+        grid[nextJoining[0]] = cluster;
+        grid[nextJoining[1]] = cluster;
+        animationQueue.push({
+          type: "join",
+          position: nextJoining,
+          color: cluster,
+        });
+        animationQueue.push({
+          type: "point",
+          position: nextJoining[1],
+          color: cluster,
+        });
+      }else{
+        let moveFrom;
+        let moveTo;
+        if (grid[nextJoining[0]]<grid[nextJoining[1]]){
+          moveFrom = grid[nextJoining[1]];
+          moveTo = grid[nextJoining[0]];
+        } else if (grid[nextJoining[0]]>grid[nextJoining[1]]){
+          moveTo = grid[nextJoining[1]];
+          moveFrom = grid[nextJoining[0]];
+        } else {console.log("done");}
+        animationQueue.push({
+          type: "join",
+          position: nextJoining,
+          color: moveTo,
+        });
+        for (let [index, element] of grid.entries()){
+          if (element == moveFrom){
+            grid[index] = moveTo;
+            animationQueue.push({
+              type: "point",
+              position: index,
+              color: moveTo,
+            });
+          }
+        }
+      }
+      animationQueue.push({
+        type: "break",
+        duration: 1000,
+      });
+    }
+    this.interpretAnimation(animationQueue);
   }
 
   hoistSpace = (space)=> {
@@ -220,8 +353,8 @@ export default class ClusteringDemo extends React.Component {
     setTimeout(this.clearGrid,10,indexStart+100);
   }).bind(this);
 
-  addAnimation = function(type, position, color){
-    let animationObj = {}
+  addAnimation = function(type, position, color, pointPositions){
+    let animationObj = {};
     if (type == "dot"){
       animationObj = {
         progress: 0,
@@ -237,6 +370,15 @@ export default class ClusteringDemo extends React.Component {
         type: 'x',
         position: position,
         color: color,
+      }
+    }else if (type == "mean"){
+      animationObj = {
+        progress: 0,
+        duration: 1000,
+        type: 'mean',
+        position: position,
+        color: color,
+        pointPositions: pointPositions
       }
     }
     this.gridAnimations.push(animationObj)
@@ -297,7 +439,7 @@ export default class ClusteringDemo extends React.Component {
         </Slide>
         <Slide in={this.state.algType === 2} timeout={500} direction="down" mountOnEnter unmountOnExit>
           <ButtonGroup variant="contained" aria-label="outlined primary button group">
-            <Button onClick={()=>{this.mean_shift(5)}}>Run Algorithm</Button>
+            <Button onClick={()=>{this.mean_shift(10)}}>Run Algorithm</Button>
             <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
           </ButtonGroup>
         </Slide>
@@ -322,6 +464,19 @@ export default class ClusteringDemo extends React.Component {
           </Slide>
         </Stack>
       </Box>
+
+      <Box style={{
+          position: "absolute"
+        }}>
+        <Stack direction="row" spacing={3}>
+          <Slide in={this.state.algType === 1} timeout={500} direction="down" mountOnEnter unmountOnExit>
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+              <Button onClick={()=>{this.agglomerative()}}>Run Algorithm</Button>
+              <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
+            </ButtonGroup>
+          </Slide>
+        </Stack>
+      </Box>
     </Box>)
   }
 
@@ -338,12 +493,9 @@ export default class ClusteringDemo extends React.Component {
         <InputLabel id="select-algorithm-label">Algorithm</InputLabel>
         <Select labelId="select-algorithm-label" id="demo-simple-select" label="Algorithm" value={this.state.algType} onChange={this.changeAlg}>
           <MenuItem value={0}>K-means</MenuItem>
-          <MenuItem value={1}>Specral</MenuItem>
+          <MenuItem value={1}>Agglomerative</MenuItem>
           <MenuItem value={2}>Mean-Shift</MenuItem>
           <MenuItem value={3}>DBSCAN</MenuItem>
-          <MenuItem value={4}>GMM</MenuItem>
-          <MenuItem value={5}>Agglomerative</MenuItem>
-          <MenuItem value={6}>BIRCH</MenuItem>
         </Select>
       </FormControl>
       {this.manageOptions()}

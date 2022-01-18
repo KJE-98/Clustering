@@ -67,9 +67,15 @@ export default class Grid extends PtsCanvas{
         this.form.fillOnly(animation.color).point(this.gd[animation.index], size-size*progress, "circle" );
       } else if (animation.type == "x"){
         let coordinates = this.coordChange(animation.position);
-        let rect = Rectangle.corners( Rectangle.fromCenter( coordinates, size*3 ) ).rotate2D( 1.3, this.coordChange(animation.position) );
-        this.form.strokeOnly(this.colorMappings[animation.color], size*3/2).lines( [ [rect[0], rect[2]], [rect[1], rect[3]] ] );
+        let rect = Rectangle.corners( Rectangle.fromCenter( coordinates, size*3 ) ).rotate2D( 1.4, this.coordChange(animation.position) );
+        this.form.strokeOnly(this.colorMappings[animation.color], size*(1.2-100/animation.progress)*3/2).lines( [ [rect[0], rect[2]], [rect[1], rect[3]] ] );
         this.form.strokeOnly("white", size/4).lines( [ [rect[0], rect[2]], [rect[1], rect[3]] ] );
+      }else if (animation.type == "mean"){
+        let progressTransform = animation.progress/30;
+        let newPositions = animation.pointPositions.map((element) => this.coordChange([(element[0]+progressTransform*animation.position[0])/(progressTransform+1), (element[1]+progressTransform*animation.position[1])/(progressTransform+1)]))
+        for (let element of newPositions){
+          this.form.fillOnly(this.colorMappings[animation.color]).point(element, size/(progressTransform/5+1), "circle" );
+        }
       }
       animation.progress += ftime;
     }
