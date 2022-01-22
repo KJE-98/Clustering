@@ -10,14 +10,14 @@ import Paper from '@mui/material/Paper';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#7264b3',
+      main: '#373a52',
       light: '#8879c9',
       dark: '#4d3f8f',
     },
     secondary: {
-      main: '#c255be',
+      main: '#8580d1',
       light: '#c466c1',
-      dark: '#853682'
+      dark: '#03c6fc'
     },
     info: {
       main: '#c255be',

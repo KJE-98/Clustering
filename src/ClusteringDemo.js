@@ -23,7 +23,7 @@ import Grid from './Grid.js';
 export default class ClusteringDemo extends React.Component {
   gridState = new Array(10000).fill(0);
   gridAnimations = [];
-  colorMappings = ['white', "black", "blue", "red", "green", "purple", "yellow"];
+
 
   copy(grid){
     let result = [];
@@ -42,30 +42,23 @@ export default class ClusteringDemo extends React.Component {
   interpretAnimation = (function(queue){
     if (queue.length == 0){return}
     let next = queue.shift();
-    console.log(next);
     if (next.type == "point"){
-      console.log("point");
       this.changeGrid(next.position, next.color)
       this.interpretAnimation(queue);
     }else if (next.type == "break"){
-      console.log("break");
       setTimeout(this.interpretAnimation, next.duration, queue);
     }else if (next.type == "x"){
-      console.log("inx");
-      this.addAnimation("x", next.position, next.color);
+      this.addAnimation("x", next.position, next.color, null, next.delay, next.duration);
       this.interpretAnimation(queue);
     }else if (next.type == "meanX"){
-      console.log("inmeanx");
-      console.log();
       let position = next.points.map((element) => this.indexToxy(element));
-      console.log("here");
-      console.log(position);
-      console.log(next.position);
       this.addAnimation("mean", next.position, next.color, position);
-      this.addAnimation("x", next.position, next.color);
+      this.addAnimation("x", next.position, next.color, null, 1000, 1000);
       this.interpretAnimation(queue);
     }else if (next.type == "join"){
-      console.log("injoin");
+      this.interpretAnimation(queue);
+    }else if (next.type == "circle"){
+      this.addAnimation("circle", next.position, next.color, null, 0, next.duration);
       this.interpretAnimation(queue);
     }
   }).bind(this);
@@ -73,25 +66,29 @@ export default class ClusteringDemo extends React.Component {
   k_means(k){
     let animationQueue = []
     let grid = this.copy(this.gridState);
+
     //create n random points to be the initial centers
     let centerArray = new Array(k).fill(0).map(() => [Math.random()*50,Math.random()*50])
     let goAgain = true;
+    let centerColor = 2;
+    for (let point of centerArray){
+      animationQueue.push({
+        type: "x",
+        position: point,
+        color:  centerColor,
+        delay: 0,
+        duration: 1000
+      });
+      centerColor++;
+    }
+    animationQueue.push({
+      type: "break",
+      duration: 1000,
+    });
     // loop
     while (goAgain == true){
       goAgain = false;
-      let centerColor = 2;
-      for (let point of centerArray){
-        animationQueue.push({
-          type: "x",
-          position: point,
-          color:  centerColor
-        });
-        centerColor++;
-      }
-      animationQueue.push({
-        type: "break",
-        duration: 1000,
-      });
+
       let newCenterArray = new Array(k).fill(0).map(() => [0,0]);
       let newCenterArrayHelper = new Array(k).fill(0);
       let centerArrayledger = new Array(k).fill(0).map(() => []);
@@ -135,8 +132,6 @@ export default class ClusteringDemo extends React.Component {
         type: "break",
         duration: 1000,
       });
-      console.log("centerArrayledger");
-      console.log(centerArrayledger);
       for (const [legerIndex, points] of centerArrayledger.entries()){
         animationQueue.push({
           type: "meanX",
@@ -145,13 +140,18 @@ export default class ClusteringDemo extends React.Component {
           points: points,
         });
       }
+      animationQueue.push({
+        type: "break",
+        duration: 2000,
+      });
     }
     this.interpretAnimation(animationQueue);
     return animationQueue;
   }
 
   mean_shift(r){
-    let number_rows = Math.floor(50/r);
+    let numberofcenters = 0;
+    let number_rows = Math.floor(25/r)+1;
     let animationQueue = [];
     let grid = this.copy(this.gridState);
     //create points to be the initial centers
@@ -160,18 +160,27 @@ export default class ClusteringDemo extends React.Component {
       let y = (index%number_rows+.5) * (50/number_rows);
       return [x,y];
     });
-    for (let center of centerArray){
+    let durationOfXAnimation = centerArray.length;
+    for (let [index,center] of centerArray.entries()){
       animationQueue.push({
         type: "x",
         position: center,
-        color:  2
+        color:  2+index,
+        delay: 0,
+        duration: 1000
+      });
+      animationQueue.push({
+        type: "circle",
+        position: [center,r],
+        color: 2 + index,
+        duration: 2200 + 850 * index
       });
     }
     for (let i = 0; i<10; i++){
       animationQueue.push({
         type: "break",
         duration: 1000,
-      })
+      });
       let newCenter = new Array(centerArray.length).fill(0).map(() => [0,0]);
       let newCenterHelper = new Array(centerArray.length).fill(0).map(() => []);
       for (let [index, element] of grid.entries()){
@@ -196,13 +205,31 @@ export default class ClusteringDemo extends React.Component {
         let y = element[1]/len;
         return [x,y];
       });
+      numberofcenters = 0;
+      for (let [index,center] of centerArray.entries()){
+        if (center != null){numberofcenters++;}
+      }
       for (let [index,center] of centerArray.entries()){
         if (center == null){continue;}
         animationQueue.push({
+          type: "break",
+          duration: 150,
+        });
+        animationQueue.push({
           type: "meanX",
           position: center,
-          color:  2,
+          color:  2 + index,
           points: this.copy(newCenterHelper[index]),
+        });
+        animationQueue.push({
+          type: "break",
+          duration: 700,
+        });
+        animationQueue.push({
+          type: "circle",
+          position: [center,r],
+          color: 2 + index,
+          duration: 850 * numberofcenters + 1000
         });
       }
     }
@@ -216,7 +243,7 @@ export default class ClusteringDemo extends React.Component {
     let grid = this.copy(this.gridState);
     let goAgain = true;
     let ticker = 0
-    while (goAgain && ticker < 10){
+    while (goAgain){
       goAgain = false;
       ticker++;
       let nextJoining = [];
@@ -300,7 +327,7 @@ export default class ClusteringDemo extends React.Component {
         } else if (grid[nextJoining[0]]>grid[nextJoining[1]]){
           moveTo = grid[nextJoining[1]];
           moveFrom = grid[nextJoining[0]];
-        } else {console.log("done");}
+        } else {}
         animationQueue.push({
           type: "join",
           position: nextJoining,
@@ -319,7 +346,7 @@ export default class ClusteringDemo extends React.Component {
       }
       animationQueue.push({
         type: "break",
-        duration: 1000,
+        duration: 400,
       });
     }
     this.interpretAnimation(animationQueue);
@@ -332,7 +359,7 @@ export default class ClusteringDemo extends React.Component {
   changeAlg = (function(event) {
     this.setState({algType: event.target.value});
     this.addAnimation("dot", 150);
-    this.createRandomPoints(300);
+    this.createRandomPoints();
   }).bind(this);
 
   changeGrid = (function(index, key) {
@@ -353,7 +380,7 @@ export default class ClusteringDemo extends React.Component {
     setTimeout(this.clearGrid,10,indexStart+100);
   }).bind(this);
 
-  addAnimation = function(type, position, color, pointPositions){
+  addAnimation = function(type, position, color, pointPositions, delay, duration){
     let animationObj = {};
     if (type == "dot"){
       animationObj = {
@@ -365,8 +392,9 @@ export default class ClusteringDemo extends React.Component {
       }
     }else if (type == "x"){
       animationObj = {
+        delay: delay,
         progress: 0,
-        duration: 1000,
+        duration: duration,
         type: 'x',
         position: position,
         color: color,
@@ -380,6 +408,16 @@ export default class ClusteringDemo extends React.Component {
         color: color,
         pointPositions: pointPositions
       }
+    }else if (type == "circle"){
+      animationObj = {
+        progress: 0,
+        duration: duration,
+        type: 'circle',
+        position: position[0],
+        radius: position[1],
+        color: color,
+        delay: delay,
+      }
     }
     this.gridAnimations.push(animationObj)
   }
@@ -388,19 +426,32 @@ export default class ClusteringDemo extends React.Component {
     this.gridAnimations.splice(index,1);
   }).bind(this);
 
-  createRandomPoints(n){
+  createRandomPoints(){
+    let center_1 = this.indexToxy(Math.floor(Math.random()*2500));
+    let center_2 = this.indexToxy(Math.floor(Math.random()*2500));
+    let center_3 = this.indexToxy(Math.floor(Math.random()*2500));
     for (let i = 0; i<2500; i++){
+      let baseline = Math.random();
       this.changeGrid(i, 0);
-    }
-    for (let i = 0; i<n; i++){
-      let x = Math.floor(Math.random()*50);
-      let y = Math.floor(Math.random()*50);
-      this.changeGrid(50*y+x, 1);
+      if (baseline < .25){continue;}
+      if (baseline > .95){this.changeGrid(i, 1);continue;}
+      let coords = this.indexToxy(i);
+      let dist_1 = Math.sqrt((center_1[0]-coords[0])**2 + (center_1[1]-coords[1])**2);
+      let dist_2 = Math.sqrt((center_2[0]-coords[0])**2 + (center_2[1]-coords[1])**2);
+      let dist_3 = Math.sqrt((center_3[0]-coords[0])**2 + (center_3[1]-coords[1])**2);
+      if (dist_1<Math.random()*10||dist_2<Math.random()*10||dist_3<Math.random()*10){
+        this.changeGrid(i, 1);
+      }
     }
   }
 
   constructor(props) {
     super(props);
+    //this.colorMappings = ['white', "black", "blue", "red", "green", "purple", "yellow"];
+    this.colorMappings = ["white", "black"];
+    for (let i = 0; i<420; i++){
+      this.colorMappings.push("#" + Math.floor(14550000 + (i*97777)%2227215).toString(16));
+    }
     this.state = {
       algType: 0,
       n: 1,
@@ -418,7 +469,7 @@ export default class ClusteringDemo extends React.Component {
           <InputLabel id="pagination-label" shrink={true}>Number of Clusters</InputLabel>
         </Slide>
         <Slide in={this.state.algType === 0} onChange={(e,p)=>{this.setState({n: p})}} timeout={500} direction="down" mountOnEnter unmountOnExit>
-          <Pagination count={10} color="primary"/>
+          <Pagination count={5} type="outlined" color="secondary"/>
         </Slide>
         </Box>
         <Slide in={this.state.algType === 0} timeout={500} direction="down" mountOnEnter unmountOnExit>
@@ -500,15 +551,15 @@ export default class ClusteringDemo extends React.Component {
       </FormControl>
       {this.manageOptions()}
     </Stack> < /AppBar>
-    <Box sx={{backgroundColor: "#dcfcfc", paddingTop: "1vw"}}>
-      <Paper elevation={6} sx={{display: "inline-block", width: "23vw", height: "45vw", backgroundColor: "#e3fdff", margin: "1vw"}}>
+    <Box sx={{backgroundColor: "#edfcff", paddingTop: "1vw"}}>
+      <Paper elevation={6} sx={{display: "inline-block", width: "23vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
       </Paper>
-      <Paper elevation={6} sx={{display: "inline-block", width: "45vw", height: "45vw", backgroundColor: "#e3fdff", margin: "1vw"}}>
-        <Grid style={{width: "45vw", height: "45vw", borderRadius: "1px"}} background="#e3fdff" gridState={this.gridState}
+      <Paper elevation={6} sx={{display: "inline-block", width: "45vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
+        <Grid style={{width: "45vw", height: "45vw", borderRadius: "1px"}} background="#edfcff" gridState={this.gridState}
                     changeGrid={this.changeGrid} gridAnimations={this.gridAnimations} deleteAnimation={this.deleteAnimation}>
         </Grid>
       </Paper>
-      <Paper elevation={6} sx={{display: "inline-block", width: "23vw", height: "45vw", backgroundColor: "#e3fdff", margin: "1vw"}}>
+      <Paper elevation={6} sx={{display: "inline-block", width: "23vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
       </Paper>
     </Box>
     </>);

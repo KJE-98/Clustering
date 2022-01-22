@@ -5,9 +5,13 @@ import {Pt, Group, Line, Create, Sound, Triangle, Const, Geom, Color, Rectangle}
 export default class Grid extends PtsCanvas{
   mousedown = false;
   mouseup = false;
-  colorMappings = ['white', "black", "blue", "red", "green", "purple", "yellow"];
   constructor() {
     super();
+    this.colorMappings = ["white", "black"];
+    for (let i = 0; i<420; i++){
+      //this.colorMappings = ['white', "black", "blue", "red", "green", "purple", "yellow"];
+      this.colorMappings.push("#" + Math.floor(14550000 + (i*97777)%2227215).toString(16));
+    }
   }
 
   colorOfKey(key){
@@ -61,21 +65,26 @@ export default class Grid extends PtsCanvas{
       this.form.fillOnly(this.colorOfKey(this.props.gridState[key])).point(value, size, "square" );
     }
     for (const [index, animation] of this.props.gridAnimations.entries()){
-      if (animation.progress >= animation.duration){this.props.deleteAnimation(index)}
+      if (animation.delay>0){animation.delay -= ftime; continue;}
+      if (animation.progress >= animation.duration){this.deleteAnimation(index); continue;}
       if (animation.type == "dot"){
         let progress = Math.min(animation.progress/animation.duration,1)
         this.form.fillOnly(animation.color).point(this.gd[animation.index], size-size*progress, "circle" );
       } else if (animation.type == "x"){
         let coordinates = this.coordChange(animation.position);
-        let rect = Rectangle.corners( Rectangle.fromCenter( coordinates, size*3 ) ).rotate2D( 1.4, this.coordChange(animation.position) );
-        this.form.strokeOnly(this.colorMappings[animation.color], size*(1.2-100/animation.progress)*3/2).lines( [ [rect[0], rect[2]], [rect[1], rect[3]] ] );
+        let rect = Rectangle.corners( Rectangle.fromCenter( coordinates, size*3 ) ).rotate2D( 1.5, this.coordChange(animation.position) );
+        this.form.strokeOnly(this.colorMappings[animation.color], size*(1.2-50/animation.progress)*3/2).lines( [ [rect[0], rect[2]], [rect[1], rect[3]] ] );
         this.form.strokeOnly("white", size/4).lines( [ [rect[0], rect[2]], [rect[1], rect[3]] ] );
       }else if (animation.type == "mean"){
-        let progressTransform = animation.progress/30;
-        let newPositions = animation.pointPositions.map((element) => this.coordChange([(element[0]+progressTransform*animation.position[0])/(progressTransform+1), (element[1]+progressTransform*animation.position[1])/(progressTransform+1)]))
+        let progressTransform = animation.progress/200;
+        let newPositions = animation.pointPositions.map((element) => this.coordChange([(element[0]-animation.position[0])/((progressTransform**3)/2+1)+animation.position[0], (element[1]-animation.position[1])/((progressTransform**3)/2+1)+animation.position[1]]))
         for (let element of newPositions){
           this.form.fillOnly(this.colorMappings[animation.color]).point(element, size/(progressTransform/5+1), "circle" );
         }
+      }else if (animation.type == "circle"){
+        let progressTransform = Math.min(animation.progress/100, 6.3);
+        let positionTransform = this.coordChange(animation.position);
+        this.form.strokeOnly(this.colorMappings[animation.color],3).arc(positionTransform, animation.radius*this.width/50, 0, progressTransform);
       }
       animation.progress += ftime;
     }
@@ -83,4 +92,8 @@ export default class Grid extends PtsCanvas{
 
   action(type, x, y){
   }
+
+  deleteAnimation = (function(index){
+    this.props.gridAnimations.splice(index,1);
+  })
 }
