@@ -64,9 +64,11 @@ export default class Grid extends PtsCanvas{
     for (const[key, value] of this.gd.entries()){
       this.form.fillOnly(this.colorOfKey(this.props.gridState[key])).point(value, size, "square" );
     }
+    let animationsToDelete = [];
+    let adjuster = 0;
     for (const [index, animation] of this.props.gridAnimations.entries()){
       if (animation.delay>0){animation.delay -= ftime; continue;}
-      if (animation.progress >= animation.duration){this.deleteAnimation(index); continue;}
+      if (animation.progress >= animation.duration){animationsToDelete.push(index - adjuster); adjuster++; continue;}
       if (animation.type == "dot"){
         let progress = Math.min(animation.progress/animation.duration,1)
         this.form.fillOnly(animation.color).point(this.gd[animation.index], size-size*progress, "circle" );
@@ -87,6 +89,9 @@ export default class Grid extends PtsCanvas{
         this.form.strokeOnly(this.colorMappings[animation.color],3).arc(positionTransform, animation.radius*this.width/50, 0, progressTransform);
       }
       animation.progress += ftime;
+    }
+    for ( let [index,element] of animationsToDelete.entries()){
+      this.deleteAnimation(element);
     }
   }
 
