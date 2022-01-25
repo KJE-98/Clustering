@@ -23,8 +23,6 @@ import Grid from './Grid.js';
 export default class ClusteringDemo extends React.Component {
   gridState = new Array(10000).fill(0);
   gridAnimations = [];
-
-
   copy(grid){
     let result = [];
     for (let element of grid){
@@ -173,7 +171,7 @@ export default class ClusteringDemo extends React.Component {
         type: "circle",
         position: [center,r],
         color: 2 + index,
-        duration: 2200 + 850 * index
+        duration: 2200 + 1600 * index
       });
     }
     for (let i = 0; i<10; i++){
@@ -213,7 +211,7 @@ export default class ClusteringDemo extends React.Component {
         if (center == null){continue;}
         animationQueue.push({
           type: "break",
-          duration: 150,
+          duration: 800,
         });
         animationQueue.push({
           type: "meanX",
@@ -223,13 +221,13 @@ export default class ClusteringDemo extends React.Component {
         });
         animationQueue.push({
           type: "break",
-          duration: 700,
+          duration: 800,
         });
         animationQueue.push({
           type: "circle",
           position: [center,r],
           color: 2 + index,
-          duration: 850 * numberofcenters + 1000
+          duration: 850 * numberofcenters + 1800
         });
       }
     }
@@ -433,13 +431,13 @@ export default class ClusteringDemo extends React.Component {
     for (let i = 0; i<2500; i++){
       let baseline = Math.random();
       this.changeGrid(i, 0);
-      if (baseline < .25){continue;}
+      if (baseline < .30){continue;}
       if (baseline > .95){this.changeGrid(i, 1);continue;}
       let coords = this.indexToxy(i);
       let dist_1 = Math.sqrt((center_1[0]-coords[0])**2 + (center_1[1]-coords[1])**2);
       let dist_2 = Math.sqrt((center_2[0]-coords[0])**2 + (center_2[1]-coords[1])**2);
       let dist_3 = Math.sqrt((center_3[0]-coords[0])**2 + (center_3[1]-coords[1])**2);
-      if (dist_1<Math.random()*10||dist_2<Math.random()*10||dist_3<Math.random()*10){
+      if (dist_1<Math.random()*7||dist_2<Math.random()*7||dist_3<Math.random()*7){
         this.changeGrid(i, 1);
       }
     }
@@ -448,6 +446,41 @@ export default class ClusteringDemo extends React.Component {
   constructor(props) {
     super(props);
     //this.colorMappings = ['white', "black", "blue", "red", "green", "purple", "yellow"];
+    this.algDescriptions = [
+      <>
+        <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#a5bcd9"}}>
+          <h3 style={{margin: 0, marginBottom: "1vw"}}>K-Means</h3>
+        </Container>
+        <Container sx={{fontFamily: 'Ubuntu'}}>
+          <p>K-means is a clustering algorithm that iteratively adjusts a set number of clusters until an acceptable end state is reached.</p>
+          <p>The user must choose one parameter: the number of clusters. This number will be stored in the variable k. To start, k number of "center points" are chosen; in this implementation, these center points are chosen randomly.</p>
+          <p>The iterative step has two parts. First, the each point calculates which center point it is closest to. The points are clustered according to which center is closest. Then, each cluster calculates its average possition, and the old center points are thrown out and replaced by the previously calculated averages.</p>
+          <p>The iteration is repeated until the center points no longer change, and the clustering at that point is the final clustering.</p>
+        </Container>
+      </>,
+      <>
+        <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#a5bcd9"}}>
+          <h3 style={{margin: 0, marginBottom: "1vw"}}>Agglomerative</h3>
+        </Container>
+        <Container sx={{fontFamily: 'Ubuntu'}}>
+          <p> Agglomerative clustering is a clustering algorithm that begins with each point in its own cluster, and iteratively joins clusters until there is only one cluster left.</p>
+          <p> Agglomerative clustering does not require the user to input any parameters.</p>
+          <p> The iterative step has only one part, at each step, the algorithm find the closest two points, and joins their respective clusters.</p>
+          <p> The iteration process may be stopped at any point, when the user decides that the clustering is complete. Eventually, if the user never stops the clustering, there will be only one cluster left, containing all the points.</p>
+        </Container>
+      </>,
+      <>
+        <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#a5bcd9"}}>
+          <h3 style={{margin: 0, marginBottom: "1vw"}}>Mean-Shift</h3>
+        </Container>
+        <Container sx={{fontFamily: 'Ubuntu'}}>
+          <p> Mean Shift clustering is an algorithm that uses sliding "windows" that progressively move towards centers of high density.</p>
+          <p> Mean Shift clustering requires that the user provide a radius for the sliding windows, which will be stored in the variable "r".</p>
+          <p> First, a set of circular sliding windows of radius are are initialized evenly throughout the grid of data.</p>
+          <p> The iterative step has one part. Each sliding window calculates the average location points contained within it, and a "x" is placed there to mark the location. Then, the sliding window is repositioned to be centered at the "x"</p>
+          <p> The iterative step is done until none of the sliding windows move by any significant margin. Once this is complete, there are many ways to cluster the data based on the final location of the sliding windows.</p>
+        </Container>
+      </>,,];
     this.colorMappings = ["white", "black"];
     for (let i = 0; i<420; i++){
       this.colorMappings.push("#" + Math.floor(14550000 + (i*97777)%2227215).toString(16));
@@ -455,6 +488,7 @@ export default class ClusteringDemo extends React.Component {
     this.state = {
       algType: 0,
       n: 1,
+      algDesciption: this.algDescriptions[0],
     };
   }
 
@@ -552,14 +586,15 @@ export default class ClusteringDemo extends React.Component {
       {this.manageOptions()}
     </Stack> < /AppBar>
     <Box sx={{backgroundColor: "#edfcff", paddingTop: "1vw"}}>
-      <Paper elevation={6} sx={{display: "inline-block", width: "23vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
+      <Paper elevation={6} sx={{display: "inline-block", verticalAlign: "top", width: "21vw", height: "43vw", backgroundColor: "#edfcff", margin: "1vw", paddingBottom: "2vw"}}>
+          {this.algDescriptions[this.state.algType]}
       </Paper>
-      <Paper elevation={6} sx={{display: "inline-block", width: "45vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
+      <Paper elevation={6} sx={{display: "inline-block", verticalAlign: "top", width: "45vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
         <Grid style={{width: "45vw", height: "45vw", borderRadius: "1px"}} background="#edfcff" gridState={this.gridState}
                     changeGrid={this.changeGrid} gridAnimations={this.gridAnimations} deleteAnimation={this.deleteAnimation}>
         </Grid>
       </Paper>
-      <Paper elevation={6} sx={{display: "inline-block", width: "23vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
+      <Paper elevation={6} sx={{display: "inline-block", verticalAlign: "top", width: "23vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
       </Paper>
     </Box>
     </>);

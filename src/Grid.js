@@ -7,7 +7,7 @@ export default class Grid extends PtsCanvas{
   mouseup = false;
   constructor() {
     super();
-    this.colorMappings = ["white", "black"];
+    this.colorMappings = ["white", "black", "#3287d1", "#08c6f8", "#7c69ee", "#fba3f4", "#8df8e4", "#059691", "#75f679", "#f48571", "#d04a5f"];
     for (let i = 0; i<420; i++){
       //this.colorMappings = ['white', "black", "blue", "red", "green", "purple", "yellow"];
       this.colorMappings.push("#" + Math.floor(14550000 + (i*97777)%2227215).toString(16));
