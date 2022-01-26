@@ -16,13 +16,16 @@ import {
   Slide,
   Container,
   ButtonGroup,
-  Button
+  Button,
+  Slider,
+  Typography
 } from '@mui/material';
 import Grid from './Grid.js';
 
 export default class ClusteringDemo extends React.Component {
   gridState = new Array(10000).fill(0);
   gridAnimations = [];
+
   copy(grid){
     let result = [];
     for (let element of grid){
@@ -41,10 +44,11 @@ export default class ClusteringDemo extends React.Component {
     if (queue.length == 0){return}
     let next = queue.shift();
     if (next.type == "point"){
-      this.changeGrid(next.position, next.color)
+      this.addAnimation('point', next.position, next.color)
       this.interpretAnimation(queue);
     }else if (next.type == "break"){
-      setTimeout(this.interpretAnimation, next.duration, queue);
+      this.addAnimation('break', null, null, null, 0, next.duration);
+      this.interpretAnimation(queue);
     }else if (next.type == "x"){
       this.addAnimation("x", next.position, next.color, null, next.delay, next.duration);
       this.interpretAnimation(queue);
@@ -62,12 +66,14 @@ export default class ClusteringDemo extends React.Component {
   }).bind(this);
 
   k_means(k){
+
     let animationQueue = []
     let grid = this.copy(this.gridState);
 
     //create n random points to be the initial centers
     let centerArray = new Array(k).fill(0).map(() => [Math.random()*50,Math.random()*50])
     let goAgain = true;
+    let atLeastOnePoint = true;
     let centerColor = 2;
     for (let point of centerArray){
       animationQueue.push({
@@ -84,15 +90,17 @@ export default class ClusteringDemo extends React.Component {
       duration: 1000,
     });
     // loop
-    while (goAgain == true){
+    while (goAgain&&atLeastOnePoint){
+      console.log("runnign loop")
       goAgain = false;
-
+      atLeastOnePoint = false;
       let newCenterArray = new Array(k).fill(0).map(() => [0,0]);
       let newCenterArrayHelper = new Array(k).fill(0);
       let centerArrayledger = new Array(k).fill(0).map(() => []);
       let newGrid = this.copy(grid);
       for(const [index,point] of grid.entries()){
         if (point == 0) {continue;}
+        atLeastOnePoint = true;
         let coordinates = (this.indexToxy(index));
         let distance = 100000;
         let closest = 2;
@@ -143,6 +151,7 @@ export default class ClusteringDemo extends React.Component {
         duration: 2000,
       });
     }
+    console.log("interpretAnimation");
     this.interpretAnimation(animationQueue);
     return animationQueue;
   }
@@ -171,7 +180,7 @@ export default class ClusteringDemo extends React.Component {
         type: "circle",
         position: [center,r],
         color: 2 + index,
-        duration: 2200 + 1600 * index
+        duration: 2600 + 1600 * index
       });
     }
     for (let i = 0; i<10; i++){
@@ -227,7 +236,7 @@ export default class ClusteringDemo extends React.Component {
           type: "circle",
           position: [center,r],
           color: 2 + index,
-          duration: 850 * numberofcenters + 1800
+          duration: 1600 * numberofcenters + 500
         });
       }
     }
@@ -350,8 +359,8 @@ export default class ClusteringDemo extends React.Component {
     this.interpretAnimation(animationQueue);
   }
 
-  hoistSpace = (space)=> {
-    this.gridSpace = space;
+  DBSCAN(r, minCluster){
+
   }
 
   changeAlg = (function(event) {
@@ -361,6 +370,11 @@ export default class ClusteringDemo extends React.Component {
   }).bind(this);
 
   changeGrid = (function(index, key) {
+    this.addAnimation("dot", index);
+    this.gridState[index] = key;
+  }).bind(this);
+
+  changeGridAnimate = (function(index, key) {
     this.addAnimation("dot", index);
     this.gridState[index] = key;
   }).bind(this);
@@ -378,9 +392,15 @@ export default class ClusteringDemo extends React.Component {
     setTimeout(this.clearGrid,10,indexStart+100);
   }).bind(this);
 
-  addAnimation = function(type, position, color, pointPositions, delay, duration){
+  addAnimation = (function(type, position, color, pointPositions, delay, duration){
     let animationObj = {};
-    if (type == "dot"){
+    if (type == "point"){
+      animationObj = {
+        type: "point",
+        index: position,
+        color: color
+      }
+    } else if (type == "dot"){
       animationObj = {
         progress: 0,
         duration: 350,
@@ -416,9 +436,16 @@ export default class ClusteringDemo extends React.Component {
         color: color,
         delay: delay,
       }
+    }else if (type == "break"){
+      animationObj = {
+        progress: 0,
+        duration: duration,
+        type: 'break',
+        delay: delay,
+      }
     }
     this.gridAnimations.push(animationObj)
-  }
+  }).bind(this);
 
   deleteAnimation = (function(index){
     this.gridAnimations.splice(index,1);
@@ -430,25 +457,35 @@ export default class ClusteringDemo extends React.Component {
     let center_3 = this.indexToxy(Math.floor(Math.random()*2500));
     for (let i = 0; i<2500; i++){
       let baseline = Math.random();
-      this.changeGrid(i, 0);
+      this.changeGridAnimate(i, 0);
       if (baseline < .30){continue;}
-      if (baseline > .95){this.changeGrid(i, 1);continue;}
+      if (baseline > .95){this.changeGridAnimate(i, 1);continue;}
       let coords = this.indexToxy(i);
       let dist_1 = Math.sqrt((center_1[0]-coords[0])**2 + (center_1[1]-coords[1])**2);
       let dist_2 = Math.sqrt((center_2[0]-coords[0])**2 + (center_2[1]-coords[1])**2);
       let dist_3 = Math.sqrt((center_3[0]-coords[0])**2 + (center_3[1]-coords[1])**2);
       if (dist_1<Math.random()*7||dist_2<Math.random()*7||dist_3<Math.random()*7){
-        this.changeGrid(i, 1);
+        this.changeGridAnimate(i, 1);
       }
     }
   }
+
+  calculateSliderValue(value){
+    return Math.floor((16/81 * ((3/2)**value))*10)/10;
+  }
+
+  handleSliderChange = (function(event, newValue) {
+    if (typeof newValue === 'number') {
+      this.setState({sliderValue: newValue});
+    }
+  }).bind(this)
 
   constructor(props) {
     super(props);
     //this.colorMappings = ['white', "black", "blue", "red", "green", "purple", "yellow"];
     this.algDescriptions = [
       <>
-        <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#a5bcd9"}}>
+        <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#85a5d4"}}>
           <h3 style={{margin: 0, marginBottom: "1vw"}}>K-Means</h3>
         </Container>
         <Container sx={{fontFamily: 'Ubuntu'}}>
@@ -459,7 +496,7 @@ export default class ClusteringDemo extends React.Component {
         </Container>
       </>,
       <>
-        <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#a5bcd9"}}>
+        <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#85a5d4"}}>
           <h3 style={{margin: 0, marginBottom: "1vw"}}>Agglomerative</h3>
         </Container>
         <Container sx={{fontFamily: 'Ubuntu'}}>
@@ -470,7 +507,7 @@ export default class ClusteringDemo extends React.Component {
         </Container>
       </>,
       <>
-        <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#a5bcd9"}}>
+        <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#85a5d4"}}>
           <h3 style={{margin: 0, marginBottom: "1vw"}}>Mean-Shift</h3>
         </Container>
         <Container sx={{fontFamily: 'Ubuntu'}}>
@@ -489,6 +526,8 @@ export default class ClusteringDemo extends React.Component {
       algType: 0,
       n: 1,
       algDesciption: this.algDescriptions[0],
+      sliderValue: 4,
+      isPaused: 1,
     };
   }
 
@@ -591,10 +630,31 @@ export default class ClusteringDemo extends React.Component {
       </Paper>
       <Paper elevation={6} sx={{display: "inline-block", verticalAlign: "top", width: "45vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
         <Grid style={{width: "45vw", height: "45vw", borderRadius: "1px"}} background="#edfcff" gridState={this.gridState}
-                    changeGrid={this.changeGrid} gridAnimations={this.gridAnimations} deleteAnimation={this.deleteAnimation}>
+                    changeGrid={this.changeGrid} gridAnimations={this.gridAnimations} deleteAnimation={this.deleteAnimation} sliderValue={this.state.sliderValue} isPaused={this.state.isPaused}>
         </Grid>
       </Paper>
       <Paper elevation={6} sx={{display: "inline-block", verticalAlign: "top", width: "23vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
+        <Box sx={{padding: "1vw"}}>
+          <Typography id="non-linear-slider" gutterBottom>
+            {'Animation Speed: ' + this.calculateSliderValue(this.state.sliderValue)+'x'}
+          </Typography>
+          <Slider
+            value={this.state.sliderValue}
+            min={1}
+            step={1}
+            max={10}
+            scale={this.calculateSliderValue}
+            getAriaValueText={(value) => value+'x'}
+            valueLabelFormat={(value) => value+'x'}
+            onChange={this.handleSliderChange}
+            valueLabelDisplay="auto"
+            aria-labelledby="non-linear-slider"
+          />
+        </Box>
+        <ButtonGroup variant="contained" aria-label="outlined primary button group">
+          <Button onClick={()=>{this.setState({isPaused:0})}}>Pause</Button>
+          <Button onClick={()=>{this.setState({isPaused:1})}}>Play</Button>
+        </ButtonGroup>
       </Paper>
     </Box>
     </>);

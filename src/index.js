@@ -10,7 +10,7 @@ import Paper from '@mui/material/Paper';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#373a52',
+      main: '#85a5d4',
       light: '#8879c9',
       dark: '#4d3f8f',
     },

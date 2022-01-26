@@ -18,6 +18,10 @@ export default class Grid extends PtsCanvas{
     return this.colorMappings[key]
   }
 
+  calculateSliderValue(value){
+    return Math.floor((16/81 * ((3/2)**value))*10)/10;
+  }
+
   canvasClicked = (function(event){
     let elem = this.space.element,
     elemLeft = elem.offsetLeft + elem.clientLeft,
@@ -57,6 +61,7 @@ export default class Grid extends PtsCanvas{
   coordChange(point){
     return [this.width*point[0]/50, this.width*point[1]/50];
   }
+
   // Override PtsCanvas' animate function
   animate(time, ftime) {
     // Use pointer position to change speed
@@ -67,7 +72,7 @@ export default class Grid extends PtsCanvas{
     let animationsToDelete = [];
     let adjuster = 0;
     for (const [index, animation] of this.props.gridAnimations.entries()){
-      if (animation.delay>0){animation.delay -= ftime; continue;}
+      if (animation.delay>0){animation.delay -= ftime*this.calculateSliderValue(this.props.sliderValue)*this.props.isPaused; continue;}
       if (animation.progress >= animation.duration){animationsToDelete.push(index - adjuster); adjuster++; continue;}
       if (animation.type == "dot"){
         let progress = Math.min(animation.progress/animation.duration,1)
@@ -87,8 +92,22 @@ export default class Grid extends PtsCanvas{
         let progressTransform = Math.min(animation.progress/100, 6.3);
         let positionTransform = this.coordChange(animation.position);
         this.form.strokeOnly(this.colorMappings[animation.color],3).arc(positionTransform, animation.radius*this.width/50, 0, progressTransform);
+      }else if (animation.type == "break"){
+        animation.progress += ftime*this.calculateSliderValue(this.props.sliderValue)*this.props.isPaused;
+        break;
+      }else if (animation.type == "point"){
+        let fromColor = this.colorMappings[this.props.gridState[animation.index]];
+        this.props.changeGrid(animation.index, animation.color);
+        this.props.gridAnimations[index] = {
+          progress: 0,
+          duration: 350,
+          type: "dot",
+          index: animation.index,
+          color: fromColor
+        }
+        continue;
       }
-      animation.progress += ftime;
+      animation.progress += ftime*this.calculateSliderValue(this.props.sliderValue)*this.props.isPaused;
     }
     for ( let [index,element] of animationsToDelete.entries()){
       this.deleteAnimation(element);
