@@ -41,7 +41,8 @@ export default class ClusteringDemo extends React.Component {
   }
 
   interpretAnimation = (function(queue){
-    if (queue.length == 0){return}
+
+    if (queue.length == 0){return;}
     let next = queue.shift();
     if (next.type == "point"){
       this.addAnimation('point', next.position, next.color)
@@ -66,7 +67,6 @@ export default class ClusteringDemo extends React.Component {
   }).bind(this);
 
   k_means(k){
-
     let animationQueue = []
     let grid = this.copy(this.gridState);
 
@@ -90,7 +90,7 @@ export default class ClusteringDemo extends React.Component {
       duration: 1000,
     });
     // loop
-    while (goAgain&&atLeastOnePoint){
+    while (goAgain && atLeastOnePoint){
       console.log("runnign loop")
       goAgain = false;
       atLeastOnePoint = false;
@@ -151,7 +151,7 @@ export default class ClusteringDemo extends React.Component {
         duration: 2000,
       });
     }
-    console.log("interpretAnimation");
+    this.setState({isPaused:1});
     this.interpretAnimation(animationQueue);
     return animationQueue;
   }
@@ -216,6 +216,21 @@ export default class ClusteringDemo extends React.Component {
       for (let [index,center] of centerArray.entries()){
         if (center != null){numberofcenters++;}
       }
+      let indexesToPrune = [];
+      for (let [index,center] of centerArray.entries()){
+        if (center == null){continue;}
+        for (let [index2,center2] of centerArray.entries()){
+          if (center2 == null){continue;}
+          if (index == index2){continue;}
+          if ( (center2[0]-center[0])**2 + (center2[1]-center[1])**2 < r**2/16 ){
+            if (newCenterHelper[index].length<newCenterHelper[index2].length){
+              indexesToPrune.push([index, index2]);
+            }else{
+              indexesToPrune.push([index2, index]);
+            }
+          }
+        }
+      }
       for (let [index,center] of centerArray.entries()){
         if (center == null){continue;}
         animationQueue.push({
@@ -239,7 +254,45 @@ export default class ClusteringDemo extends React.Component {
           duration: 1600 * numberofcenters + 500
         });
       }
+      for (let element of indexesToPrune){
+        animationQueue.push({
+          type: "join",
+          position: element,
+          color: 2,
+        });
+        centerArray[element[0]] = null;
+      }
     }
+    for (let [index,point] of centerArray.entries()){
+      if (point == null){continue}
+      animationQueue.push({
+        type: "x",
+        position: point,
+        color:  index+2,
+        delay: 0,
+        duration: 1000
+      });
+    }
+    for(const [index,point] of grid.entries()){
+      if (point == 0) {continue;}
+      let coordinates = (this.indexToxy(index));
+      let distance = 100000;
+      let closest = -1;
+      for (let [index,center] of centerArray.entries()){
+        if (center == null){continue;}
+        let newDistance = (center[0]-coordinates[0])**2 + (center[1]-coordinates[1])**2;
+        if (newDistance<distance){
+          closest = index;
+          distance = newDistance;
+        }
+      }
+      animationQueue.push({
+        type: "point",
+        color: closest+2,
+        position: index,
+      });
+    }
+    this.setState({isPaused:1});
     this.interpretAnimation(animationQueue);
     return animationQueue;
   }
@@ -356,6 +409,7 @@ export default class ClusteringDemo extends React.Component {
         duration: 400,
       });
     }
+    this.setState({isPaused:1});
     this.interpretAnimation(animationQueue);
   }
 
@@ -365,12 +419,9 @@ export default class ClusteringDemo extends React.Component {
 
   changeAlg = (function(event) {
     this.setState({algType: event.target.value});
-    this.addAnimation("dot", 150);
-    this.createRandomPoints();
   }).bind(this);
 
   changeGrid = (function(index, key) {
-    this.addAnimation("dot", index);
     this.gridState[index] = key;
   }).bind(this);
 
@@ -380,16 +431,19 @@ export default class ClusteringDemo extends React.Component {
   }).bind(this);
 
   clearGrid = (function(indexStart) {
+    if (indexStart == 0){
+      this.setState({isPaused:1});
+    }
     if (indexStart>9999) {
       return
     }
-    for (let i = indexStart; i<indexStart+100; i++){
+    for (let i = indexStart; i<indexStart+50; i++){
       if (this.gridState[i] != 0){
         this.addAnimation("dot", i);
         this.gridState[i] = 0;
       }
     }
-    setTimeout(this.clearGrid,10,indexStart+100);
+    setTimeout(this.clearGrid,10,indexStart+50);
   }).bind(this);
 
   addAnimation = (function(type, position, color, pointPositions, delay, duration){
@@ -398,7 +452,8 @@ export default class ClusteringDemo extends React.Component {
       animationObj = {
         type: "point",
         index: position,
-        color: color
+        color: color,
+        delay: 0
       }
     } else if (type == "dot"){
       animationObj = {
@@ -406,7 +461,8 @@ export default class ClusteringDemo extends React.Component {
         duration: 350,
         type: "dot",
         index: position,
-        color: this.colorMappings[this.gridState[position]]
+        color: this.colorMappings[this.gridState[position]],
+        delay: 0
       }
     }else if (type == "x"){
       animationObj = {
@@ -424,7 +480,8 @@ export default class ClusteringDemo extends React.Component {
         type: 'mean',
         position: position,
         color: color,
-        pointPositions: pointPositions
+        pointPositions: pointPositions,
+        delay: 0,
       }
     }else if (type == "circle"){
       animationObj = {
@@ -451,7 +508,22 @@ export default class ClusteringDemo extends React.Component {
     this.gridAnimations.splice(index,1);
   }).bind(this);
 
+  reset = (function(indexStart){
+    if (indexStart == 0) {this.setState({isPaused:1});this.gridAnimations.splice(0,this.gridAnimations.length)}
+    if (indexStart>9999) {
+      return
+    }
+    for (let i = indexStart; i<indexStart+50; i++){
+      if (this.gridState[i] != 0){
+        this.addAnimation("dot", i);
+        this.gridState[i] = 1;
+      }
+    }
+    setTimeout(this.reset,10,indexStart+50);
+  }).bind(this);
+
   createRandomPoints(){
+    this.setState({isPaused:1});
     let center_1 = this.indexToxy(Math.floor(Math.random()*2500));
     let center_2 = this.indexToxy(Math.floor(Math.random()*2500));
     let center_3 = this.indexToxy(Math.floor(Math.random()*2500));
@@ -483,6 +555,7 @@ export default class ClusteringDemo extends React.Component {
   constructor(props) {
     super(props);
     //this.colorMappings = ['white', "black", "blue", "red", "green", "purple", "yellow"];
+    this.radius = 10;
     this.algDescriptions = [
       <>
         <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#85a5d4"}}>
@@ -548,6 +621,12 @@ export default class ClusteringDemo extends React.Component {
         <Slide in={this.state.algType === 0} timeout={500} direction="down" mountOnEnter unmountOnExit>
           <ButtonGroup variant="contained" aria-label="outlined primary button group">
             <Button onClick={()=>{this.k_means(this.state.n)}}>Run Algorithm</Button>
+            <Button onClick={()=>{this.reset(0)}}>  Reset Grid  </Button>
+          </ButtonGroup>
+        </Slide>
+        <Slide in={this.state.algType === 0} timeout={500} direction="down" mountOnEnter unmountOnExit>
+          <ButtonGroup variant="contained" aria-label="outlined primary button group">
+            <Button onClick={()=>{this.createRandomPoints()}}>Randomize</Button>
             <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
           </ButtonGroup>
         </Slide>
@@ -559,11 +638,17 @@ export default class ClusteringDemo extends React.Component {
         }}>
         <Stack direction="row" spacing={3}>
         <Slide in={this.state.algType === 2} timeout={500} direction="down" mountOnEnter unmountOnExit>
-          <TextField id="mean-shift-radius" label="Radius" variant="standard"/>
+          <TextField id="mean-shift-radius" label="Radius" variant="standard" onChange={(e) => this.radius = e.target.value}/>
         </Slide>
         <Slide in={this.state.algType === 2} timeout={500} direction="down" mountOnEnter unmountOnExit>
           <ButtonGroup variant="contained" aria-label="outlined primary button group">
-            <Button onClick={()=>{this.mean_shift(10)}}>Run Algorithm</Button>
+            <Button onClick={()=>{this.mean_shift(this.radius)}}>Run Algorithm</Button>
+            <Button onClick={()=>{this.reset(0)}}>  Reset Grid  </Button>
+          </ButtonGroup>
+        </Slide>
+        <Slide in={this.state.algType === 2} timeout={500} direction="down" mountOnEnter unmountOnExit>
+          <ButtonGroup variant="contained" aria-label="outlined primary button group">
+            <Button onClick={()=>{this.createRandomPoints()}}>Randomize</Button>
             <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
           </ButtonGroup>
         </Slide>
@@ -583,6 +668,12 @@ export default class ClusteringDemo extends React.Component {
           <Slide in={this.state.algType === 3} timeout={500} direction="down" mountOnEnter unmountOnExit>
             <ButtonGroup variant="contained" aria-label="outlined primary button group">
               <Button>Run Algorithm</Button>
+              <Button onClick={()=>{this.reset(0)}}>  Reset Grid  </Button>
+            </ButtonGroup>
+          </Slide>
+          <Slide in={this.state.algType === 3} timeout={500} direction="down" mountOnEnter unmountOnExit>
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+              <Button onClick={()=>{this.createRandomPoints()}}>Randomize</Button>
               <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
             </ButtonGroup>
           </Slide>
@@ -596,6 +687,12 @@ export default class ClusteringDemo extends React.Component {
           <Slide in={this.state.algType === 1} timeout={500} direction="down" mountOnEnter unmountOnExit>
             <ButtonGroup variant="contained" aria-label="outlined primary button group">
               <Button onClick={()=>{this.agglomerative()}}>Run Algorithm</Button>
+              <Button onClick={()=>{this.reset(0)}}>  Reset Grid  </Button>
+            </ButtonGroup>
+          </Slide>
+          <Slide in={this.state.algType === 1} timeout={500} direction="down" mountOnEnter unmountOnExit>
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+              <Button sx={{height: 50}} onClick={()=>{this.createRandomPoints()}}>Randomize</Button>
               <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
             </ButtonGroup>
           </Slide>

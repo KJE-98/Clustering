@@ -65,6 +65,7 @@ export default class Grid extends PtsCanvas{
   // Override PtsCanvas' animate function
   animate(time, ftime) {
     // Use pointer position to change speed
+    let jumpStart = 0;
     let size = this.width/105;
     for (const[key, value] of this.gd.entries()){
       this.form.fillOnly(this.colorOfKey(this.props.gridState[key])).point(value, size, "square" );
@@ -72,8 +73,8 @@ export default class Grid extends PtsCanvas{
     let animationsToDelete = [];
     let adjuster = 0;
     for (const [index, animation] of this.props.gridAnimations.entries()){
-      if (animation.delay>0){animation.delay -= ftime*this.calculateSliderValue(this.props.sliderValue)*this.props.isPaused; continue;}
-      if (animation.progress >= animation.duration){animationsToDelete.push(index - adjuster); adjuster++; continue;}
+      if (animation.delay>0){animation.delay -= (ftime+jumpStart)*this.calculateSliderValue(this.props.sliderValue)*this.props.isPaused; continue;}
+      if (animation.progress >= animation.duration && animation.type != "break"){animationsToDelete.push(index - adjuster); adjuster++; continue;}
       if (animation.type == "dot"){
         let progress = Math.min(animation.progress/animation.duration,1)
         this.form.fillOnly(animation.color).point(this.gd[animation.index], size-size*progress, "circle" );
@@ -93,6 +94,12 @@ export default class Grid extends PtsCanvas{
         let positionTransform = this.coordChange(animation.position);
         this.form.strokeOnly(this.colorMappings[animation.color],3).arc(positionTransform, animation.radius*this.width/50, 0, progressTransform);
       }else if (animation.type == "break"){
+        if (animation.progress>animation.duration){
+          jumpStart = animation.progress-animation.duration;
+          animationsToDelete.push(index - adjuster);
+          adjuster++;
+          continue;
+        }
         animation.progress += ftime*this.calculateSliderValue(this.props.sliderValue)*this.props.isPaused;
         break;
       }else if (animation.type == "point"){
@@ -103,11 +110,13 @@ export default class Grid extends PtsCanvas{
           duration: 350,
           type: "dot",
           index: animation.index,
-          color: fromColor
+          color: fromColor,
+          delay: 0
         }
         continue;
       }
-      animation.progress += ftime*this.calculateSliderValue(this.props.sliderValue)*this.props.isPaused;
+      animation.progress += (ftime+jumpStart)*this.calculateSliderValue(this.props.sliderValue)*this.props.isPaused - animation.delay;
+      animation.delay = 0;
     }
     for ( let [index,element] of animationsToDelete.entries()){
       this.deleteAnimation(element);
