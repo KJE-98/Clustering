@@ -36,3 +36,17 @@
     transform: rotate(360deg);
   }
 }
+
+*::-webkit-scrollbar
+{
+    width: 0px;
+}
+*::-webkit-scrollbar-track-piece
+{
+    background-color: transparent;
+    -webkit-border-radius: 6px;
+}
+
+* {
+  scrollbar-color: #d1d1d1 transparent;
+}

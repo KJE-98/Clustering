@@ -433,6 +433,7 @@ export default class ClusteringDemo extends React.Component {
   clearGrid = (function(indexStart) {
     if (indexStart == 0){
       this.setState({isPaused:1});
+      this.gridAnimations.splice(0,this.gridAnimations.length)
     }
     if (indexStart>9999) {
       return
@@ -561,7 +562,7 @@ export default class ClusteringDemo extends React.Component {
         <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#85a5d4"}}>
           <h3 style={{margin: 0, marginBottom: "1vw"}}>K-Means</h3>
         </Container>
-        <Container sx={{fontFamily: 'Ubuntu'}}>
+        <Container sx={{fontFamily: 'Ubuntu', overflowY: "scroll", height: "42vw",}}>
           <p>K-means is a clustering algorithm that iteratively adjusts a set number of clusters until an acceptable end state is reached.</p>
           <p>The user must choose one parameter: the number of clusters. This number will be stored in the variable k. To start, k number of "center points" are chosen; in this implementation, these center points are chosen randomly.</p>
           <p>The iterative step has two parts. First, the each point calculates which center point it is closest to. The points are clustered according to which center is closest. Then, each cluster calculates its average possition, and the old center points are thrown out and replaced by the previously calculated averages.</p>
@@ -572,7 +573,7 @@ export default class ClusteringDemo extends React.Component {
         <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#85a5d4"}}>
           <h3 style={{margin: 0, marginBottom: "1vw"}}>Agglomerative</h3>
         </Container>
-        <Container sx={{fontFamily: 'Ubuntu'}}>
+        <Container sx={{fontFamily: 'Ubuntu', overflowY: "scroll", height: "42vw",}}>
           <p> Agglomerative clustering is a clustering algorithm that begins with each point in its own cluster, and iteratively joins clusters until there is only one cluster left.</p>
           <p> Agglomerative clustering does not require the user to input any parameters.</p>
           <p> The iterative step has only one part, at each step, the algorithm find the closest two points, and joins their respective clusters.</p>
@@ -583,7 +584,7 @@ export default class ClusteringDemo extends React.Component {
         <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#85a5d4"}}>
           <h3 style={{margin: 0, marginBottom: "1vw"}}>Mean-Shift</h3>
         </Container>
-        <Container sx={{fontFamily: 'Ubuntu'}}>
+        <Container sx={{fontFamily: 'Ubuntu', overflowY: "scroll", height: "42vw", height: "42vw"}}>
           <p> Mean Shift clustering is an algorithm that uses sliding "windows" that progressively move towards centers of high density.</p>
           <p> Mean Shift clustering requires that the user provide a radius for the sliding windows, which will be stored in the variable "r".</p>
           <p> First, a set of circular sliding windows of radius are are initialized evenly throughout the grid of data.</p>
@@ -604,6 +605,16 @@ export default class ClusteringDemo extends React.Component {
     };
   }
 
+  runAlgorithm(){
+    if (this.state.algType == 0){
+      this.k_means(this.state.n);
+    } else if (this.state.algType == 1){
+      this.agglomerative();
+    } else if (this.state.algType == 2){
+      this.mean_shift(this.radius);
+    }
+  }
+
   manageOptions() {
     return (<Box type="span">
       <Box style={{
@@ -615,21 +626,9 @@ export default class ClusteringDemo extends React.Component {
           <InputLabel id="pagination-label" shrink={true}>Number of Clusters</InputLabel>
         </Slide>
         <Slide in={this.state.algType === 0} onChange={(e,p)=>{this.setState({n: p})}} timeout={500} direction="down" mountOnEnter unmountOnExit>
-          <Pagination count={5} type="outlined" color="secondary"/>
+          <Pagination count={5} type="outlined" color="secondary" sx={{height: 30}}/>
         </Slide>
         </Box>
-        <Slide in={this.state.algType === 0} timeout={500} direction="down" mountOnEnter unmountOnExit>
-          <ButtonGroup variant="contained" aria-label="outlined primary button group">
-            <Button onClick={()=>{this.k_means(this.state.n)}}>Run Algorithm</Button>
-            <Button onClick={()=>{this.reset(0)}}>  Reset Grid  </Button>
-          </ButtonGroup>
-        </Slide>
-        <Slide in={this.state.algType === 0} timeout={500} direction="down" mountOnEnter unmountOnExit>
-          <ButtonGroup variant="contained" aria-label="outlined primary button group">
-            <Button onClick={()=>{this.createRandomPoints()}}>Randomize</Button>
-            <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
-          </ButtonGroup>
-        </Slide>
         </Stack>
       </Box>
 
@@ -638,19 +637,7 @@ export default class ClusteringDemo extends React.Component {
         }}>
         <Stack direction="row" spacing={3}>
         <Slide in={this.state.algType === 2} timeout={500} direction="down" mountOnEnter unmountOnExit>
-          <TextField id="mean-shift-radius" label="Radius" variant="standard" onChange={(e) => this.radius = e.target.value}/>
-        </Slide>
-        <Slide in={this.state.algType === 2} timeout={500} direction="down" mountOnEnter unmountOnExit>
-          <ButtonGroup variant="contained" aria-label="outlined primary button group">
-            <Button onClick={()=>{this.mean_shift(this.radius)}}>Run Algorithm</Button>
-            <Button onClick={()=>{this.reset(0)}}>  Reset Grid  </Button>
-          </ButtonGroup>
-        </Slide>
-        <Slide in={this.state.algType === 2} timeout={500} direction="down" mountOnEnter unmountOnExit>
-          <ButtonGroup variant="contained" aria-label="outlined primary button group">
-            <Button onClick={()=>{this.createRandomPoints()}}>Randomize</Button>
-            <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
-          </ButtonGroup>
+          <TextField id="mean-shift-radius" label="Radius" value={this.radius} variant="standard" onChange={(e) => this.radius = e.target.value}/>
         </Slide>
         </Stack>
       </Box>
@@ -665,18 +652,6 @@ export default class ClusteringDemo extends React.Component {
           <Slide id="alg3" in={this.state.algType === 3} timeout={500} direction="down" mountOnEnter unmountOnExit>
             <TextField id="DBSCAN-ppc" label="Points per cluster" variant="standard"/>
           </Slide>
-          <Slide in={this.state.algType === 3} timeout={500} direction="down" mountOnEnter unmountOnExit>
-            <ButtonGroup variant="contained" aria-label="outlined primary button group">
-              <Button>Run Algorithm</Button>
-              <Button onClick={()=>{this.reset(0)}}>  Reset Grid  </Button>
-            </ButtonGroup>
-          </Slide>
-          <Slide in={this.state.algType === 3} timeout={500} direction="down" mountOnEnter unmountOnExit>
-            <ButtonGroup variant="contained" aria-label="outlined primary button group">
-              <Button onClick={()=>{this.createRandomPoints()}}>Randomize</Button>
-              <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
-            </ButtonGroup>
-          </Slide>
         </Stack>
       </Box>
 
@@ -684,18 +659,6 @@ export default class ClusteringDemo extends React.Component {
           position: "absolute"
         }}>
         <Stack direction="row" spacing={3}>
-          <Slide in={this.state.algType === 1} timeout={500} direction="down" mountOnEnter unmountOnExit>
-            <ButtonGroup variant="contained" aria-label="outlined primary button group">
-              <Button onClick={()=>{this.agglomerative()}}>Run Algorithm</Button>
-              <Button onClick={()=>{this.reset(0)}}>  Reset Grid  </Button>
-            </ButtonGroup>
-          </Slide>
-          <Slide in={this.state.algType === 1} timeout={500} direction="down" mountOnEnter unmountOnExit>
-            <ButtonGroup variant="contained" aria-label="outlined primary button group">
-              <Button sx={{height: 50}} onClick={()=>{this.createRandomPoints()}}>Randomize</Button>
-              <Button onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
-            </ButtonGroup>
-          </Slide>
         </Stack>
       </Box>
     </Box>)
@@ -704,10 +667,11 @@ export default class ClusteringDemo extends React.Component {
   render() {
     return (<> < AppBar position = "static" style = {{
       padding: 10
-    }} > <Stack direction="row" spacing={2}>
+    }} > <Stack direction="row" spacing={5}>
       <img src={logo} className="App-logo" alt="logo" size="small" style={{
           height: 60
         }}/>
+      <h2 style={{color: "#041c40"}}> Clustering Algorithms Visualized </h2>
       <FormControl sx={{
           minWidth: 200
         }}>
@@ -716,7 +680,6 @@ export default class ClusteringDemo extends React.Component {
           <MenuItem value={0}>K-means</MenuItem>
           <MenuItem value={1}>Agglomerative</MenuItem>
           <MenuItem value={2}>Mean-Shift</MenuItem>
-          <MenuItem value={3}>DBSCAN</MenuItem>
         </Select>
       </FormControl>
       {this.manageOptions()}
@@ -730,28 +693,58 @@ export default class ClusteringDemo extends React.Component {
                     changeGrid={this.changeGrid} gridAnimations={this.gridAnimations} deleteAnimation={this.deleteAnimation} sliderValue={this.state.sliderValue} isPaused={this.state.isPaused}>
         </Grid>
       </Paper>
+
       <Paper elevation={6} sx={{display: "inline-block", verticalAlign: "top", width: "23vw", height: "45vw", backgroundColor: "#edfcff", margin: "1vw"}}>
-        <Box sx={{padding: "1vw"}}>
-          <Typography id="non-linear-slider" gutterBottom>
-            {'Animation Speed: ' + this.calculateSliderValue(this.state.sliderValue)+'x'}
-          </Typography>
-          <Slider
-            value={this.state.sliderValue}
-            min={1}
-            step={1}
-            max={10}
-            scale={this.calculateSliderValue}
-            getAriaValueText={(value) => value+'x'}
-            valueLabelFormat={(value) => value+'x'}
-            onChange={this.handleSliderChange}
-            valueLabelDisplay="auto"
-            aria-labelledby="non-linear-slider"
-          />
-        </Box>
-        <ButtonGroup variant="contained" aria-label="outlined primary button group">
-          <Button onClick={()=>{this.setState({isPaused:0})}}>Pause</Button>
-          <Button onClick={()=>{this.setState({isPaused:1})}}>Play</Button>
-        </ButtonGroup>
+
+        <Container elevation={4} sx={{margin: "0vw", backgroundColor: "#85a5d4"}}>
+          <h3 style={{margin: 0, marginBottom: "1vw"}}>Controls</h3>
+        </Container>
+
+        <Container sx={{fontFamily: 'Ubuntu', overflowY: "scroll", height: "42vw"}}>
+          <Box sx={{padding: "1vw"}}>
+            <Typography id="non-linear-slider" gutterBottom>
+              {'Animation Speed: ' + this.calculateSliderValue(this.state.sliderValue) + 'x'}
+            </Typography>
+            <Slider
+              value={this.state.sliderValue}
+              min={1}
+              step={1}
+              max={10}
+              scale={this.calculateSliderValue}
+              getAriaValueText={(value) => value+'x'}
+              valueLabelFormat={(value) => value+'x'}
+              onChange={this.handleSliderChange}
+              valueLabelDisplay="auto"
+              aria-labelledby="non-linear-slider"
+            />
+          </Box>
+          <Box sx={{padding: "1vw", width: "15vw"}}>
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+              <Button sx={{padding: "1vw", width: "8vw"}}onClick={()=>{this.setState({isPaused:0})}}>Pause</Button>
+              <Button sx={{padding: "1vw", width: "7vw"}}onClick={()=>{this.setState({isPaused:1})}}>Play</Button>
+            </ButtonGroup>
+          </Box>
+          <Box sx={{padding: "1vw", width: "15vw"}}>
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+              <Button sx={{padding: "1vw", width: "15vw"}} onClick={()=>{this.runAlgorithm()}}>Run Algorithm</Button>
+            </ButtonGroup>
+          </Box>
+          <Box sx={{padding: "1vw", width: "15vw"}}>
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+              <Button sx={{padding: "1vw", width: "15vw"}} onClick={()=>{this.createRandomPoints()}}>Random Points</Button>
+            </ButtonGroup>
+          </Box>
+          <Box sx={{padding: "1vw", width: "15vw"}}>
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+              <Button sx={{padding: "1vw", width: "15vw"}} onClick={()=>{this.clearGrid(0)}}>Clear Points</Button>
+            </ButtonGroup>
+          </Box>
+          <Box sx={{padding: "1vw", width: "15vw"}}>
+            <ButtonGroup variant="contained" aria-label="outlined primary button group">
+              <Button sx={{padding: "1vw", width: "15vw"}} onClick={()=>{this.reset(0)}}>  Reset Animation </Button>
+            </ButtonGroup>
+          </Box>
+        </Container>
       </Paper>
     </Box>
     </>);
