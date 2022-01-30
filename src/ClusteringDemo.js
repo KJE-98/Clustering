@@ -565,7 +565,7 @@ export default class ClusteringDemo extends React.Component {
         <Container sx={{fontFamily: 'Ubuntu', overflowY: "scroll", height: "42vw",}}>
           <p>K-means is a clustering algorithm that iteratively adjusts a set number of clusters until an acceptable end state is reached.</p>
           <p>The user must choose one parameter: the number of clusters. This number will be stored in the variable k. To start, k number of "center points" are chosen; in this implementation, these center points are chosen randomly.</p>
-          <p>The iterative step has two parts. First, the each point calculates which center point it is closest to. The points are clustered according to which center is closest. Then, each cluster calculates its average possition, and the old center points are thrown out and replaced by the previously calculated averages.</p>
+          <p>The iterative step has two parts. First, the each point calculates which center point it is closest to. The points are clustered according to which center is closest. Then, each cluster calculates its average position, and the old center points are thrown out and replaced by the previously calculated averages.</p>
           <p>The iteration is repeated until the center points no longer change, and the clustering at that point is the final clustering.</p>
         </Container>
       </>,
@@ -589,7 +589,7 @@ export default class ClusteringDemo extends React.Component {
           <p> Mean Shift clustering requires that the user provide a radius for the sliding windows, which will be stored in the variable "r".</p>
           <p> First, a set of circular sliding windows of radius are are initialized evenly throughout the grid of data.</p>
           <p> The iterative step has one part. Each sliding window calculates the average location points contained within it, and a "x" is placed there to mark the location. Then, the sliding window is repositioned to be centered at the "x"</p>
-          <p> The iterative step is done until none of the sliding windows move by any significant margin. Once this is complete, there are many ways to cluster the data based on the final location of the sliding windows.</p>
+          <p> In this implementation, the iterative step is done 10 times. If any two sliding windows become too close, one of the sliding windows is deleted. After the iterative step, each point is clustered according to which center it is closest to.</p>
         </Container>
       </>,,];
     this.colorMappings = ["white", "black"];
@@ -637,7 +637,7 @@ export default class ClusteringDemo extends React.Component {
         }}>
         <Stack direction="row" spacing={3}>
         <Slide in={this.state.algType === 2} timeout={500} direction="down" mountOnEnter unmountOnExit>
-          <TextField id="mean-shift-radius" label="Radius" value={this.radius} variant="standard" onChange={(e) => this.radius = e.target.value}/>
+          <TextField id="mean-shift-radius" label="Radius" defaultValue={this.radius} variant="standard" onChange={(e) => this.radius = e.target.value}/>
         </Slide>
         </Stack>
       </Box>

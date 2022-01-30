@@ -71,12 +71,11 @@ export default class Grid extends PtsCanvas{
     for (const[key, value] of this.gd.entries()){
       this.form.fillOnly(this.colorOfKey(this.props.gridState[key])).point(value, size, "square" );
     }
-    if (this.props.isPaused == 0){
-    }
+
     let animationsToDelete = [];
     let adjuster = 0;
     for (const [index, animation] of this.props.gridAnimations.entries()){
-      if (animation.delay>0){animation.delay -= ((ftime)*this.calculateSliderValue(this.props.sliderValue) + jumpStart); continue;}
+      if (animation.delay>0){animation.delay -= ((ftime)*this.calculateSliderValue(this.props.sliderValue) + jumpStart)*this.props.isPaused; continue;}
       if (animation.progress >= animation.duration && animation.type != "break"){animationsToDelete.push(index - adjuster); adjuster++; continue;}
       if (animation.type == "dot"){
         let progress = Math.min(animation.progress/animation.duration,1)
@@ -103,7 +102,7 @@ export default class Grid extends PtsCanvas{
           adjuster++;
           continue;
         }
-        animation.progress += (ftime)*this.calculateSliderValue(this.props.sliderValue);
+        animation.progress += ((ftime)*this.calculateSliderValue(this.props.sliderValue))*this.props.isPaused;
         break;
       }else if (animation.type == "point"){
         let fromColor = this.colorMappings[this.props.gridState[animation.index]];
@@ -118,7 +117,7 @@ export default class Grid extends PtsCanvas{
         }
         continue;
       }
-      animation.progress += ((ftime)*this.calculateSliderValue(this.props.sliderValue)-animation.delay + jumpStart);
+      animation.progress += ((ftime)*this.calculateSliderValue(this.props.sliderValue)-animation.delay + jumpStart)*this.props.isPaused;
       animation.delay = 0;
     }
     for ( let [index,element] of animationsToDelete.entries()){
