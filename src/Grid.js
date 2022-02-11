@@ -102,7 +102,7 @@ export default class Grid extends PtsCanvas{
           adjuster++;
           continue;
         }
-        animation.progress += ((ftime)*this.calculateSliderValue(this.props.sliderValue))*this.props.isPaused;
+        animation.progress += ((ftime)*this.calculateSliderValue(this.props.sliderValue) + jumpStart)*this.props.isPaused;
         break;
       }else if (animation.type == "point"){
         let fromColor = this.colorMappings[this.props.gridState[animation.index]];
